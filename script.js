@@ -2,8 +2,12 @@ import data from "./data.js";
 
 const productsContainer = document.querySelector("#productsContainer");
 const basketContainer = document.querySelector("#basketContainer");
+const main = document.querySelector("main");
 const basketCount = document.querySelector("#basketCount");
 const order = document.querySelector("#order");
+const modal = document.querySelector("#modal");
+const modalContent = document.querySelector("#modalContent");
+const modalBtn = document.querySelector("#modalBtn");
 let basket = [];
 
 function createProducts(products) {
@@ -98,7 +102,7 @@ function createBasketUi(basketData) {
           </div>
         </div>
         <button data-id=${bData.id}
-          class="size-5 border border-gray-500 rounded-full flex items-center justify-center removeBtn"
+          class="size-7 border border-gray-500 rounded-full flex items-center justify-center removeBtn text-sm"
         >
           x
         </button>
@@ -162,3 +166,44 @@ function removeProduct() {
     });
   });
 }
+
+function showModal() {
+  modal.classList.replace("scale-0", "scale-100");
+  main.classList.remove("before:hidden");
+  createModalContent(basket);
+}
+
+function createModalContent(modalB) {
+  const html = modalB
+    .map((m) => {
+      return ` <div class="flex justify-between items-center">
+            <div class="flex items-center">
+              <figure class="size-14 me-2">
+                <img
+                  class="size-full object-cover"
+                  src=${m.image.desktop}
+                  alt=""
+                />
+              </figure>
+              <div class="flex flex-col justify-between items-center h-14">
+                <p>${m.name}</p>
+                <div class="self-start">
+                  <span>${m.count}x</span>
+                  <span>${m.price}$</span>
+                </div>
+              </div>
+            </div>
+            <div>${m.count * m.price}$</div>
+          </div>`;
+    })
+    .join("");
+  modalContent.innerHTML = html;
+}
+
+function destroyModal() {
+  modal.classList.replace("scale-100", "scale-0");
+  main.classList.add("before:hidden");
+}
+
+order.addEventListener("click", showModal);
+modalBtn.addEventListener("click", destroyModal);
