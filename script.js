@@ -1,162 +1,164 @@
-import data from "./data.js"; // Adjust based on your export style
+import data from "./data.js";
 
-// selectors
 const productsContainer = document.querySelector("#productsContainer");
-const basketContainer = document.querySelector("#basket-container");
+const basketContainer = document.querySelector("#basketContainer");
 const basketCount = document.querySelector("#basketCount");
-
-// variables
+const order = document.querySelector("#order");
 let basket = [];
 
-// Function to create product UI
 function createProducts(products) {
   const html = products
+
     .map((pData) => {
-      const isInBasket = basket.some((item) => item.id === pData.id);
+      const isInBasket = basket.find((item) => item.id === pData.id);
+      const count = isInBasket ? isInBasket.count : 0;
       return `<div class="space-y-3">
               <div class="relative">
                 <figure class="size-60">
                   <img
                     class="size-full object-cover rounded-md"
                     src=${pData.image.desktop}
-                    alt="${pData.name}"
+                    alt=""
                   />
                 </figure>
-               ${
-                 !isInBasket
-                   ? `<button data-id=${pData.id}
-                  class='flex absolute translate-x-1/2 -bottom-4 items-center border rounded-full bg-white py-1 px-3 addBtn'>
-                  <img src='./assets/images/icon-add-to-cart.svg' alt='' />
-                  Add to cart
-                </button>`
-                   : `<div  class="flex absolute translate-x-1/2 -bottom-4 items-center border rounded-full text-white bg-[#c73a0f] py-1 px-3 justify-between w-32">
-                    <button data-id=${pData.id} class="size-5 text-sm rounded-full border border-white flex items-center justify-center decreaseBtn">-</button>
-                    <span>${pData.count}</span>
-                    <button data-id=${pData.id} class="size-5 rounded-full border border-white flex items-center justify-center text-sm increaseBtn">+</button>
-                    </div>`
-               }
+                ${
+                  count === 0
+                    ? `<button data-id=${pData.id}
+                class="flex absolute translate-x-1/2 -bottom-4 items-center border rounded-full bg-white py-1 px-3 addBtns"
+              >
+                <img src="./assets/images/icon-add-to-cart.svg" alt="" />
+                Add to cart
+              </button>`
+                    : `<div  class="flex absolute translate-x-1/2 -bottom-4 items-center border rounded-full text-white bg-[#c73a0f] py-1 px-3 justify-between w-32">
+              <button data-id=${pData.id} class="size-5 text-sm rounded-full border border-white flex items-center justify-center decreaseBtn">-</button>
+              <span>${count}</span>
+              <button data-id=${pData.id} class="size-5 rounded-full border border-white flex items-center justify-center text-sm increaseBtn">+</button>
+              </div>`
+                }
+               
+               
               </div>
               <div class="space-y-1">
                 <span class="text-gray-500 text-sm">${pData.category}</span>
                 <p class="font-bold">${pData.name}</p>
-                <span class="text-[#c73a0f]">$${
-                  pData.price.toString().includes(".")
-                    ? pData.price
-                    : pData.price + ".00"
-                }</span>
+                <span class="text-[#c73a0f]">$${pData.price.toFixed(2)}</span>
               </div>
             </div>`;
     })
     .join("");
   productsContainer.innerHTML = html;
-  selectCartBtns();
-  increaseProduct();
-  decreaseProduct();
+  getAddBasketBtn(".addBtns");
+  getAddBasketBtn(".increaseBtn");
+  getDecrease();
+  removeProduct();
 }
 
 createProducts(data);
 
-// Add to basket function
-function addBasket(productId) {
-  const productInData = data.find((product) => product.id === productId);
+function getAddBasketBtn(className) {
+  const addBtns = document.querySelectorAll(className);
+  addBtns.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const id = +btn.getAttribute("data-id");
+      addBasket(id);
+    })
+  );
+}
 
-  if (productInData) {
-    // If the product is already in the basket, increase its count
-    basket.push(productInData);
+function addBasket(productId) {
+  const findById = data.find((item) => item.id === productId);
+  const existingProduct = basket.find((item) => item.id === productId);
+
+  if (existingProduct) {
+    existingProduct.count += 1;
+  } else {
+    basket.push({ ...findById, count: 1 });
   }
 
-  createProducts(data);
   createBasketUi(basket);
+  createProducts(data);
 }
 
-// Select "Add to Cart" buttons and attach event listeners
-function selectCartBtns() {
-  const addBtns = document.querySelectorAll(".addBtn");
-
-  addBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const productId = +btn.getAttribute("data-id");
-      addBasket(productId);
-    });
-  });
-}
-
-// Increase product quantity
-function increaseProduct() {
-  const increaseBtns = document.querySelectorAll(".increaseBtn");
-  increaseBtns.forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const productId = +btn.getAttribute("data-id");
-      const productInBasket = basket.find((item) => item.id === productId);
-
-      if (productInBasket) {
-        productInBasket.count += 1;
-
-        createProducts(data);
-        createBasketUi(basket);
-      }
-    });
-  });
-}
-
-// Decrease product quantity
-function decreaseProduct() {
-  const decreaseBtns = document.querySelectorAll(".decreaseBtn");
-  decreaseBtns.forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const productId = +btn.getAttribute("data-id");
-      const productInBasket = basket.find((item) => item.id === productId);
-
-      if (productInBasket.count > 1) {
-        productInBasket.count -= 1;
-        createProducts(data);
-        createBasketUi(basket);
-      } else if (productInBasket.count === 1) {
-        // Remove the product from the basket if the count is 1
-        basket = basket.filter((item) => item.id !== productId);
-        createProducts(data);
-        createBasketUi(basket);
-      }
-    });
-  });
-}
-
-// Create basket UI
 function createBasketUi(basketData) {
-  const sum = basketData.reduce((acc, next) => acc + next.count, 0);
+  const sum = basket.reduce((acc, next) => (acc += next.count), 0);
+
   basketCount.textContent = sum;
+  if (sum > 0) {
+    const html = basketData
+      .map((bData) => {
+        if (bData.count > 0) {
+          order.classList.remove("hidden");
+          return `  <div class="flex items-center justify-between">
+        <div>
+          <p class="font-bold">${bData.name}</p>
+          <div>
+            <span class="font-bold text-[#c73a0f]">${bData.count}x</span>
+            <span>${bData.price}$</span>
+            <span>${bData.price * bData.count}$</span>
+          </div>
+        </div>
+        <button data-id=${bData.id}
+          class="size-5 border border-gray-500 rounded-full flex items-center justify-center removeBtn"
+        >
+          x
+        </button>
+      </div>
+      `;
+        }
+      })
+      .join("");
+    basketContainer.innerHTML = html;
+  } else {
+    order.classList.add("hidden");
+    basketContainer.innerHTML = `<div>
+            <figure class="flex items-center justify-center">
+              <img
+                class="size-[200px]"
+                src="./assets/images/illustration-empty-cart.svg"
+                alt=""
+              />
+            </figure>
+            <p class="text-[#c73a0f] font-bold text-center">
+              Your added items will be appear here
+            </p>
+          </div> `;
+  }
+}
 
-  const html = basketData
-    .map((basketD) => {
-      return basketD.count > 0
-        ? `<div class="flex items-center justify-between">
-              <div>
-                <p class="font-bold">${basketD.name}</p>
-                <div>
-                  <span class="font-bold text-[#c73a0f]">${
-                    basketD.count
-                  }x</span>
-                  <span>${basketD.price}$</span>
-                  <span>${(basketD.price * basketD.count).toFixed(2)}$</span>
-                </div>
-              </div>
-              <button class="size-5 border border-gray-500 rounded-full flex items-center justify-center removeBtn" data-id=${
-                basketD.id
-              }>x</button>
-            </div>`
-        : "";
-    })
-    .join("");
-  basketContainer.innerHTML = html;
-
-  // Attach event listeners to remove buttons
-  const removeBtns = document.querySelectorAll(".removeBtn");
-  removeBtns.forEach((btn) => {
+function getDecrease() {
+  const decBtns = document.querySelectorAll(".decreaseBtn");
+  decBtns.forEach((btn) =>
     btn.addEventListener("click", () => {
-      const productId = +btn.getAttribute("data-id");
-      basket = basket.filter((item) => item.id !== productId);
-      createProducts(data);
+      const id = +btn.getAttribute("data-id");
+      decreaseBasket(id);
+    })
+  );
+}
+
+function decreaseBasket(dId) {
+  const existingProduct = basket.find((item) => item.id === dId);
+
+  if (existingProduct) {
+    if (existingProduct.count > 0) {
+      existingProduct.count -= 1;
+    } else if (existingProduct.count === 0) {
+      basket = basket.filter((item) => item.id !== dId);
+    }
+  }
+
+  createBasketUi(basket);
+  createProducts(data);
+}
+
+function removeProduct() {
+  const removBtns = document.querySelectorAll(".removeBtn");
+  removBtns.forEach((rBtn) => {
+    rBtn.addEventListener("click", () => {
+      const id = +rBtn.getAttribute("data-id");
+
+      basket = basket.filter((item) => item.id !== id);
       createBasketUi(basket);
+      createProducts(data);
     });
   });
 }
